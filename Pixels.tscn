@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://Test/Materials.png" type="Texture" id=3]
+[ext_resource path="res://Terrain/Terrain.tscn" type="PackedScene" id=4]
+
+[node name="Pixels" type="Node2D"]
+
+[node name="Terrain" parent="." instance=ExtResource( 4 )]
+position = Vector2( 200, 16 )
+SavePath = "res://World/"
+Materials = ExtResource( 3 )
