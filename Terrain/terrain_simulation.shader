@@ -85,7 +85,7 @@ bool randCheckerboard(float seed, ivec2 coords) {
 bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out ivec2 newCoords) {
 	if (material == 6) {  // sand
 		ivec2 coordsBelow = coords + ivec2(0, +1);
-		if (materialAt(terrain, coordsBelow) == 0) {  // air
+		if (materialAt(terrain, coordsBelow) == 1) {  // air
 			newCoords = coordsBelow;
 			return true;
 		}
@@ -94,14 +94,14 @@ bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out
 		bool moveRight = randCheckerboard(time, coords);
 
 		ivec2 coordsMoveDirection = coords + ivec2(moveRight ? +1 : -1, +1);
-		if (materialAt(terrain, coordsMoveDirection) == 0) {  // air
+		if (materialAt(terrain, coordsMoveDirection) == 1) {  // air
 			newCoords = coordsMoveDirection;
 			return true;
 		}
 	}
 	else if (material == 7) {  // water
 		ivec2 coordsBelow = coords + ivec2(0, +1);
-		if (materialAt(terrain, coordsBelow) == 0) {  // air
+		if (materialAt(terrain, coordsBelow) == 1) {  // air
 			newCoords = coordsBelow;
 			return true;
 		}
@@ -110,13 +110,13 @@ bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out
 		bool moveRight = (coords.y & 1) != 0;
 
 		ivec2 coordsMoveDirection = coords + ivec2(moveRight ? +1 : -1, +1);
-		if (materialAt(terrain, coordsMoveDirection) == 0) {  // air
+		if (materialAt(terrain, coordsMoveDirection) == 1) {  // air
 			newCoords = coordsMoveDirection;
 			return true;
 		}
 
 		ivec2 coordsMoveDirection2 = coords + ivec2(moveRight ? +1 : -1, 0);
-		if (materialAt(terrain, coordsMoveDirection2) == 0) {  // air
+		if (materialAt(terrain, coordsMoveDirection2) == 1) {  // air
 			newCoords = coordsMoveDirection2;
 			return true;
 		}
@@ -130,7 +130,7 @@ bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out
  * Modify this function to customize the radius of interaction between cells.
  */
 bool isMovingTo(sampler2D terrain, float time, ivec2 coords, int material, out ivec2 sourceCoords) {
-	if (material == 0) {  // air
+	if (material == 1) {  // air
 		ivec2 rand = ivec2(
 			randCheckerboard(time + 1., coords) ? +1 : -1,
 			randCheckerboard(time + 2., coords) ? +1 : -1
@@ -179,7 +179,7 @@ void fragment() {
 		ivec2 sourceCoords;
 		if (isMovingTo(TEXTURE, TIME, targetCoords, targetMaterial, sourceCoords) && sourceCoords == coords) {
 			// the occupant moved away, clear this cell
-			COLOR = makePixelData(0, coords);  // air
+			COLOR = makePixelData(1, coords);  // air
 		}
 	}
 	else {

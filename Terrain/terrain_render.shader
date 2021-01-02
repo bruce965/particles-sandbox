@@ -69,6 +69,12 @@ int materialAt(sampler2D terrain, ivec2 coords) {
 }
 
 vec4 materialColor(int material, ivec2 originalCoords) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2;
 	return texture(
@@ -81,48 +87,96 @@ vec4 materialColor(int material, ivec2 originalCoords) {
 }
 
 vec4 materialTop1Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + mod(uv.x, .03125), float(row) * .25));
 }
 
 vec4 materialTop2Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + mod(uv.x, .03125), float(row) * .25 + .00390625));
 }
 
 vec4 materialBottom1Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + mod(uv.x, .03125), float(row) * .25 + .01171875));
 }
 
 vec4 materialBottom2Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + mod(uv.x, .03125), float(row) * .25 + .0078125));
 }
 
 vec4 materialLeft1Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25, float(row) * .25 + .015625 + mod(uv.y, .03125)));
 }
 
 vec4 materialLeft2Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + .00390625, float(row) * .25 + .015625 + mod(uv.y, .03125)));
 }
 
 vec4 materialRight1Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + .01171875, float(row) * .25 + .015625 + mod(uv.y, .03125)));
 }
 
 vec4 materialRight2Color(int material, vec2 uv) {
+	if (material == 1)  // air
+		return vec4(0, 0, 0, 0);
+
+	if (material == 0)
+		material = 1;
+
 	int row = (material - 1) % 4;
 	int column = ((material - 1) / 4) * 2 + 1;
 	return texture(Materials, vec2(float(column) * .25 + .0078125, float(row) * .25 + .015625 + mod(uv.y, .03125)));
@@ -149,9 +203,6 @@ void fragment() {
 	ivec2 originalCoords;
 	ivec2 coords = ivec2(UV * vec2(TILE_SIZE));
 	getPixelData(TEXTURE, coords, material, originalCoords);
-
-	if (material == 0)
-		discard;
 
 	COLOR = materialColor(material, originalCoords);
 

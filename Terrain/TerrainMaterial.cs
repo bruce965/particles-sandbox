@@ -6,10 +6,10 @@ namespace ParticlesSandbox
 {
     public enum TerrainMaterial
     {
-        /// <summary>Nothing, vacant space, air.</summary>
-        Air = 0,
         /// <summary>Unloaded tiles or invalid/corrupted data.</summary>
-        Invalid,
+        Invalid = 0,
+        /// <summary>Nothing, vacant space, air.</summary>
+        Air,
         Dirt,
         Stone,
         Grass,
