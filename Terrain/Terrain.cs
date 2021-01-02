@@ -108,7 +108,7 @@ namespace ParticlesSandbox
                 for (var x = 0; x < TerrainTileData.Width; x++)
                 {
                     // TODO
-                    tileData[x, y] = new TerrainCell(TerrainMaterial.Air, (byte)x, (byte)y);
+                    tileData[x, y] = new TerrainCell(TerrainMaterial.Air, (byte)(x & 0x3F), (byte)(y & 0x3F), 0);
                 }
             }
         }
@@ -227,7 +227,7 @@ namespace ParticlesSandbox
                     var pixel = materialImage.GetPixel(x, y);
                     var material = pixel.AsTerrainMaterial();
 
-                    tileData[x, y] = new TerrainCell(material, (byte)x, (byte)y);
+                    tileData[x, y] = new TerrainCell(material, (byte)(x & 0x3F), (byte)(y & 0x3F), 0);
                 }
             }
 

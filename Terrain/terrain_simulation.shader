@@ -13,48 +13,49 @@ uniform sampler2D TerrainBottomRight: hint_black;
 
 const ivec2 TILE_SIZE = ivec2(256, 256);
 
-void _getPixelData(sampler2D terrain, vec2 coordsUv, out int material, out ivec2 originalCoords) {
+void _getPixelData(sampler2D terrain, vec2 coordsUv, out int material, out ivec2 originalCoords, out int extraData) {
 	ivec4 data = ivec4(texture(terrain, coordsUv) * 255.);
-	material = data.x + ((data.y & 0xFF) << 8);  // little endian
-	originalCoords = ivec2(data.z & 0xFF, data.a & 0xFF);
+	material = data.x + ((data.y & 0x0F) << 8);  // little endian
+	originalCoords = ivec2(data.z & 0x3F, data.a & 0x3F);
+	extraData = (data.y & 0x0F) | ((data.z & 0xC0) >> 4) | ((data.a & 0xC0) >> 6);
 }
 
-void getPixelData(sampler2D terrain, ivec2 coords, out int material, out ivec2 originalCoords) {
+void getPixelData(sampler2D terrain, ivec2 coords, out int material, out ivec2 originalCoords, out int extraData) {
 	vec2 fTile;
 	vec2 coordsUv = modf((vec2(coords) / vec2(TILE_SIZE)) + vec2(1), fTile);
 	ivec2 tile = ivec2(fTile) - ivec2(1);
 
 	if (tile.y == -1) {
 		if (tile.x == -1) {
-			_getPixelData(TerrainTopLeft, coordsUv, material, originalCoords);
+			_getPixelData(TerrainTopLeft, coordsUv, material, originalCoords, extraData);
 		}
 		else if (tile.x == +1) {
-			_getPixelData(TerrainTopRight, coordsUv, material, originalCoords);
+			_getPixelData(TerrainTopRight, coordsUv, material, originalCoords, extraData);
 		}
 		else {
-			_getPixelData(TerrainTop, coordsUv, material, originalCoords);
+			_getPixelData(TerrainTop, coordsUv, material, originalCoords, extraData);
 		}
 	}
 	else if (tile.y == +1) {
 		if (tile.x == -1) {
-			_getPixelData(TerrainBottomLeft, coordsUv, material, originalCoords);
+			_getPixelData(TerrainBottomLeft, coordsUv, material, originalCoords, extraData);
 		}
 		else if (tile.x == +1) {
-			_getPixelData(TerrainBottomRight, coordsUv, material, originalCoords);
+			_getPixelData(TerrainBottomRight, coordsUv, material, originalCoords, extraData);
 		}
 		else {
-			_getPixelData(TerrainBottom, coordsUv, material, originalCoords);
+			_getPixelData(TerrainBottom, coordsUv, material, originalCoords, extraData);
 		}
 	}
 	else {
 		if (tile.x == -1) {
-			_getPixelData(TerrainLeft, coordsUv, material, originalCoords);
+			_getPixelData(TerrainLeft, coordsUv, material, originalCoords, extraData);
 		}
 		else if (tile.x == +1) {
-			_getPixelData(TerrainRight, coordsUv, material, originalCoords);
+			_getPixelData(TerrainRight, coordsUv, material, originalCoords, extraData);
 		}
 		else {
-			_getPixelData(terrain, coordsUv, material, originalCoords);
+			_getPixelData(terrain, coordsUv, material, originalCoords, extraData);
 		}
 	}
 }
@@ -67,7 +68,8 @@ vec4 makePixelData(int material, ivec2 originalCoords) {
 int materialAt(sampler2D terrain, ivec2 coords) {
 	int material;
 	ivec2 originalCoords;
-	getPixelData(terrain, coords, material, originalCoords);
+	int extraData;
+	getPixelData(terrain, coords, material, originalCoords, extraData);
 	return material;
 }
 
@@ -144,8 +146,9 @@ bool isMovingTo(sampler2D terrain, float time, ivec2 coords, int material, out i
 
 				int neighborMaterial;
 				ivec2 originalNeighborCoords;
+				int neighborExtraData;
 				ivec2 neighborCoords = coords + ivec2(x, y) * rand;
-				getPixelData(terrain, neighborCoords, neighborMaterial, originalNeighborCoords);
+				getPixelData(terrain, neighborCoords, neighborMaterial, originalNeighborCoords, neighborExtraData);
 
 				ivec2 newCoords;
 				if (isMovingFrom(terrain, time, neighborCoords, neighborMaterial, newCoords) && newCoords == coords) {
@@ -163,8 +166,9 @@ bool isMovingTo(sampler2D terrain, float time, ivec2 coords, int material, out i
 void fragment() {
 	int material;
 	ivec2 originalCoords;
+	int extraData;
 	ivec2 coords = ivec2(UV * vec2(TILE_SIZE));
-	getPixelData(TEXTURE, coords, material, originalCoords);
+	getPixelData(TEXTURE, coords, material, originalCoords, extraData);
 
 	COLOR = makePixelData(material, originalCoords);
 
@@ -174,7 +178,8 @@ void fragment() {
 
 		int targetMaterial;
 		ivec2 targetOriginalCoords;
-		getPixelData(TEXTURE, targetCoords, targetMaterial, targetOriginalCoords);
+		int targetExtraData;
+		getPixelData(TEXTURE, targetCoords, targetMaterial, targetOriginalCoords, targetExtraData);
 
 		ivec2 sourceCoords;
 		if (isMovingTo(TEXTURE, TIME, targetCoords, targetMaterial, sourceCoords) && sourceCoords == coords) {
@@ -189,7 +194,8 @@ void fragment() {
 
 			int sourceMaterial;
 			ivec2 sourceOriginalCoords;
-			getPixelData(TEXTURE, sourceCoords, sourceMaterial, sourceOriginalCoords);
+			int sourceExtraData;
+			getPixelData(TEXTURE, sourceCoords, sourceMaterial, sourceOriginalCoords, sourceExtraData);
 
 			COLOR = makePixelData(sourceMaterial, sourceOriginalCoords);
 		}
