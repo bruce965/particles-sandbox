@@ -7,5 +7,5 @@ This is a work-in-progress.
 
 ## License
 
-Copyright (c) 2020 Fabio Iotti.
+Copyright (c) 2020-2021 Fabio Iotti.
 Code released under the [MIT License](LICENSE).
