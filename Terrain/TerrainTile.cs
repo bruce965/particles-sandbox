@@ -91,8 +91,10 @@ namespace ParticlesSandbox
             }
         }
 
-        public void RunSimulationOnNextDraw()
+        public void RunSimulationOnNextDraw(int randomSeed)
         {
+            ((ShaderMaterial)SimulationSprite.Material).SetShaderParam("RandomSeed", randomSeed);
+
             Viewport nextDrawViewport;
             var lastDrawViewport = (Viewport)SimulationSprite.GetParent();
 

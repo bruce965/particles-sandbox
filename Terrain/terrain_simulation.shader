@@ -11,6 +11,8 @@ uniform sampler2D TerrainBottomLeft: hint_black;
 uniform sampler2D TerrainBottom: hint_black;
 uniform sampler2D TerrainBottomRight: hint_black;
 
+uniform int RandomSeed;
+
 const ivec2 TILE_SIZE = ivec2(256, 256);
 
 void _getPixelData(sampler2D terrain, vec2 coordsUv, out int material, out ivec2 originalCoords, out int extraData) {
@@ -73,18 +75,15 @@ int materialAt(sampler2D terrain, ivec2 coords) {
 	return material;
 }
 
-bool randCheckerboard(float seed, ivec2 coords) {
-	// A checkerboard, `true` for a cell and `false` for its neighbors,
-	// or `false for a cell and `true` for its neighbors.
-	// The result is randomized depending on the seed.
-	return ((coords.x + coords.y + int(seed * 2351.)) & 1) != 0;
+bool rand(int seed, ivec2 coords) {
+	return fract(sin(dot(vec2(coords), vec2(12.9898,78.233)) + float(seed)) * 43758.5453) > .5;
 }
 
 /*
  * Compute the movement performed by the cell at the specified coordinates.
  * Customize this function to alter material physics.
  */
-bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out ivec2 newCoords) {
+bool isMovingFrom(sampler2D terrain, ivec2 coords, int material, out ivec2 newCoords) {
 	if (material == 6) {  // sand
 		ivec2 coordsBelow = coords + ivec2(0, +1);
 		if (materialAt(terrain, coordsBelow) == 1) {  // air
@@ -92,8 +91,8 @@ bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out
 			return true;
 		}
 
-		// move randomly either left or right (doesn't really need to be a checkerboard)
-		bool moveRight = randCheckerboard(time, coords);
+		// move randomly either left or right
+		bool moveRight = rand(RandomSeed, coords);
 
 		ivec2 coordsMoveDirection = coords + ivec2(moveRight ? +1 : -1, +1);
 		if (materialAt(terrain, coordsMoveDirection) == 1) {  // air
@@ -131,11 +130,11 @@ bool isMovingFrom(sampler2D terrain, float time, ivec2 coords, int material, out
  * Check if any of the neighbors of the cell at the specified coordinates wants to occupy the cell.
  * Modify this function to customize the radius of interaction between cells.
  */
-bool isMovingTo(sampler2D terrain, float time, ivec2 coords, int material, out ivec2 sourceCoords) {
+bool isMovingTo(sampler2D terrain, ivec2 coords, int material, out ivec2 sourceCoords) {
 	if (material == 1) {  // air
 		ivec2 rand = ivec2(
-			randCheckerboard(time + 1., coords) ? +1 : -1,
-			randCheckerboard(time + 2., coords) ? +1 : -1
+			rand(RandomSeed + 1, coords) ? +1 : -1,
+			rand(RandomSeed + 2, coords) ? +1 : -1
 		);
 
 		// check if any of the neighbors is moving to occupy this cell
@@ -151,7 +150,7 @@ bool isMovingTo(sampler2D terrain, float time, ivec2 coords, int material, out i
 				getPixelData(terrain, neighborCoords, neighborMaterial, originalNeighborCoords, neighborExtraData);
 
 				ivec2 newCoords;
-				if (isMovingFrom(terrain, time, neighborCoords, neighborMaterial, newCoords) && newCoords == coords) {
+				if (isMovingFrom(terrain, neighborCoords, neighborMaterial, newCoords) && newCoords == coords) {
 					// neighbor moved to this cell
 					sourceCoords = neighborCoords;
 					return true;
@@ -173,7 +172,7 @@ void fragment() {
 	COLOR = makePixelData(material, originalCoords);
 
 	ivec2 targetCoords;
-	if (isMovingFrom(TEXTURE, TIME, coords, material, targetCoords)) {
+	if (isMovingFrom(TEXTURE, coords, material, targetCoords)) {
 		// the occupant is trying to move away...
 
 		int targetMaterial;
@@ -182,14 +181,14 @@ void fragment() {
 		getPixelData(TEXTURE, targetCoords, targetMaterial, targetOriginalCoords, targetExtraData);
 
 		ivec2 sourceCoords;
-		if (isMovingTo(TEXTURE, TIME, targetCoords, targetMaterial, sourceCoords) && sourceCoords == coords) {
+		if (isMovingTo(TEXTURE, targetCoords, targetMaterial, sourceCoords) && sourceCoords == coords) {
 			// the occupant moved away, clear this cell
 			COLOR = makePixelData(1, coords);  // air
 		}
 	}
 	else {
 		ivec2 sourceCoords;
-		if (isMovingTo(TEXTURE, TIME, coords, material, sourceCoords)) {
+		if (isMovingTo(TEXTURE, coords, material, sourceCoords)) {
 			// something is moving to this cell...
 
 			int sourceMaterial;

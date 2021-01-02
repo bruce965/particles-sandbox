@@ -238,8 +238,12 @@ namespace ParticlesSandbox
 
         #region Simulation
 
+        int simulationFrame = 0;
+
         void StepSimulation()
         {
+            simulationFrame++;
+
             // TODO: find a way to retrieve all active viewports, not just the main one.
             var mainViewport = GetViewport().GetViewportRid();
 
@@ -252,7 +256,7 @@ namespace ParticlesSandbox
 
                 foreach (var tile in loadedTilesList)
                 {
-                    tile.RunSimulationOnNextDraw();
+                    tile.RunSimulationOnNextDraw(simulationFrame);
                 }
 
                 VisualServer.ForceDraw(false);
