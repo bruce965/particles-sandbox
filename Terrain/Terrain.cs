@@ -22,9 +22,8 @@ namespace ParticlesSandbox
         [Export]
         public Texture? Materials { get; set; }
 
-        readonly WeakLazy<byte[]> buffer = new WeakLazy<byte[]>(
-            () => new byte[TerrainTile.Width * TerrainTile.Height * 4]
-        );
+        readonly WeakLazy<TerrainTileData> _tileBuffer
+            = WeakLazy.FromDefaultConstructor<TerrainTileData>();
 
         readonly Lazy<TerrainConfig> _config;
         internal TerrainConfig Config => _config.Value;
@@ -59,9 +58,12 @@ namespace ParticlesSandbox
         {
             Assert(!HasNode(TileNodeName(tileX, tileY)), $"Tile [{tileX}, {tileY}] already loaded");
 
-            var texture = TileFileLoad(tileX, tileY);
-            if (texture == null)
-                texture = TileGenerate(tileX, tileY);
+            var tileData = _tileBuffer.Value;
+            if (!TryLoadTileFile(tileX, tileY, tileData))
+                TileGenerate(tileX, tileY, tileData);
+
+            var texture = new ImageTexture();
+            tileData.ExportTo(texture);
 
             var tile = (TerrainTile)Config.TerrainTile!.Instance();
             tile.Name = TileNodeName(tileX, tileY);
@@ -93,33 +95,22 @@ namespace ParticlesSandbox
 
         void TileSave(TerrainTile tile)
         {
-            TileFileSave(tile.TileX, tile.TileY, tile!.DataTexture!);
+            var tileData = _tileBuffer.Value;
+            tileData.ImportFrom(tile.DataTexture!);
+
+            SaveTileFile(tile.TileX, tile.TileY, tileData);
         }
 
-        Texture TileGenerate(int tileX, int tileY)
+        void TileGenerate(int tileX, int tileY, TerrainTileData tileData)
         {
-            var data = buffer.Value;
-
-            for (var y = 0; y < TerrainTile.Height; y++)
+            for (var y = 0; y < TerrainTileData.Height; y++)
             {
-                for (var x = 0; x < TerrainTile.Height; x++)
+                for (var x = 0; x < TerrainTileData.Width; x++)
                 {
                     // TODO
-                    var i = (y * TerrainTile.Width + x) * 4;
-                    data[i] = 0;
-                    data[i + 1] = 0;
-                    data[i + 2] = 0;
-                    data[i + 3] = 0;
+                    tileData[x, y] = new TerrainCell(TerrainMaterial.Air, (byte)x, (byte)y);
                 }
             }
-
-            var dataImage = new Image();
-            dataImage.CreateFromData(TerrainTile.Width, TerrainTile.Height, false, Image.Format.Rgba8, data);
-
-            var dataTexture = new ImageTexture();
-            dataTexture.CreateFromImage(dataImage, 0);
-
-            return dataTexture;
         }
 
         IEnumerable<TerrainTile> GetTilesRange(int minX, int maxX, int minY, int maxY, bool forceLoad = false)
@@ -150,40 +141,35 @@ namespace ParticlesSandbox
 
         #region File saving/loading
 
-        Texture? TileFileLoad(int tileX, int tileY)
+        bool TryLoadTileFile(int tileX, int tileY, TerrainTileData tileData)
         {
             var fullPath = TileFilePath(tileX, tileY);
             if (!new File().FileExists(fullPath))
-                return null;
+                return false;
 
             var materialImage = new Image();
             var loadError = materialImage.Load(fullPath);
             if (loadError != Error.Ok)
             {
                 PrintErr($"Failed to load terrain tile at \"{fullPath}\": {loadError}");
-                return null;
+                return false;
             }
 
-            if (materialImage.GetWidth() != TerrainTile.Width || materialImage.GetHeight() != TerrainTile.Height)
+            if (materialImage.GetWidth() != TerrainTileData.Width || materialImage.GetHeight() != TerrainTileData.Height)
             {
-                PrintErr($"Failed to load terrain tile at \"{fullPath}\": image is not {TerrainTile.Width}x{TerrainTile.Height}");
-                return null;
+                PrintErr($"Failed to load terrain tile at \"{fullPath}\": image is not {TerrainTileData.Width}x{TerrainTileData.Height}");
+                return false;
             }
 
-            var dataImage = DataImageFromMaterial(materialImage);
-
-            var dataTexture = new ImageTexture();
-            dataTexture.CreateFromImage(dataImage, 0);
-
-            return dataTexture;
+            TileDataFromMaterialImage(materialImage, tileData);
+            return true;
         }
 
-        void TileFileSave(int tileX, int tileY, Texture texture)
+        void SaveTileFile(int tileX, int tileY, TerrainTileData tileData)
         {
             Assert(!SaveChanges, $"Trying to save tile [{tileX}, {tileY}], but terrain is set as readonly");
 
-            var dataImage = texture.GetData();
-            var materialImage = MaterialImageFromData(dataImage);
+            var materialImage = MaterialImageFromTileData(tileData);
 
             var fullPath = TileFilePath(tileX, tileY);
             if (!new File().FileExists($"{fullPath}/.."))
@@ -205,23 +191,18 @@ namespace ParticlesSandbox
 
         #region Materials
 
-        Image MaterialImageFromData(Image image)
+        Image MaterialImageFromTileData(TerrainTileData tileData)
         {
-            var data = buffer.Value;
+            var data = new byte[TerrainTileData.Width * TerrainTileData.Height * 4];
 
-            image.Lock();
-
-            for (var y = 0; y < TerrainTile.Height; y++)
+            for (var y = 0; y < TerrainTileData.Height; y++)
             {
-                for (var x = 0; x < TerrainTile.Height; x++)
+                for (var x = 0; x < TerrainTileData.Width; x++)
                 {
-                    var pixel = image.GetPixel(x, y);
-                    var material = (TerrainMaterial)(pixel.r8 | pixel.g8 << 8);
-                    //var startX = pixel.b8;
-                    //var startY = pixel.a8;
+                    var cell = tileData[x, y];
 
-                    var i = (y * TerrainTile.Width + x) * 4;
-                    var color = material.GetColor();
+                    var i = (y * TerrainTileData.Width + x) * 4;
+                    var color = cell.Material.GetColor();
                     data[i] = unchecked ((byte)color.r8);
                     data[i + 1] = unchecked ((byte)color.g8);
                     data[i + 2] = unchecked ((byte)color.b8);
@@ -229,41 +210,28 @@ namespace ParticlesSandbox
                 }
             }
 
-            image.Unlock();
-
             var materialImage = new Image();
-            materialImage.CreateFromData(TerrainTile.Width, TerrainTile.Height, false, Image.Format.Rgba8, data);
+            materialImage.CreateFromData(TerrainTileData.Width, TerrainTileData.Height, false, Image.Format.Rgba8, data);
 
             return materialImage;
         }
 
-        Image DataImageFromMaterial(Image image)
+        void TileDataFromMaterialImage(Image materialImage, TerrainTileData tileData)
         {
-            var data = buffer.Value;
+            materialImage.Lock();
 
-            image.Lock();
-
-            for (var y = 0; y < TerrainTile.Height; y++)
+            for (var y = 0; y < TerrainTileData.Height; y++)
             {
-                for (var x = 0; x < TerrainTile.Height; x++)
+                for (var x = 0; x < TerrainTileData.Width; x++)
                 {
-                    var pixel = image.GetPixel(x, y);
+                    var pixel = materialImage.GetPixel(x, y);
                     var material = pixel.AsTerrainMaterial();
 
-                    var i = (y * TerrainTile.Width + x) * 4;
-                    data[i] = unchecked ((byte)material);
-                    data[i + 1] = unchecked ((byte)((int)material >> 8));
-                    data[i + 2] = unchecked ((byte)x);
-                    data[i + 3] = unchecked ((byte)y);
+                    tileData[x, y] = new TerrainCell(material, (byte)x, (byte)y);
                 }
             }
 
-            image.Unlock();
-
-            var dataImage = new Image();
-            dataImage.CreateFromData(TerrainTile.Width, TerrainTile.Height, false, Image.Format.Rgba8, data);
-
-            return dataImage;
+            materialImage.Unlock();
         }
 
         #endregion

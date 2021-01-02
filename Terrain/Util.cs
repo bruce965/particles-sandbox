@@ -63,4 +63,10 @@ namespace ParticlesSandbox
         public static implicit operator T(WeakLazy<T> obj)
             => obj.Value;
     }
+
+    public static class WeakLazy
+    {
+        public static WeakLazy<T> FromDefaultConstructor<T>() where T : class, new()
+            => new WeakLazy<T>(() => new T());
+    }
 }

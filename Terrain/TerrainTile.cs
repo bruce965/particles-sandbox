@@ -5,9 +5,6 @@ namespace ParticlesSandbox
 {
     public class TerrainTile : Node2D
     {
-        public const int Width = 256;
-        public const int Height = 256;
-
         readonly Lazy<Sprite> _renderSprite;
         internal Sprite RenderSprite => _renderSprite.Value;
 
@@ -23,15 +20,15 @@ namespace ParticlesSandbox
         [Export]
         public int TileX
         {
-            get => (int)(Position.x / Width);
-            set => Position = new Vector2(value * Width, Position.y);
+            get => (int)(Position.x / TerrainTileData.Width);
+            set => Position = new Vector2(value * TerrainTileData.Width, Position.y);
         }
 
         [Export]
         public int TileY
         {
-            get => (int)(Position.y / Height);
-            set => Position = new Vector2(Position.x, value * Height);
+            get => (int)(Position.y / TerrainTileData.Height);
+            set => Position = new Vector2(Position.x, value * TerrainTileData.Height);
         }
 
         [Export]
@@ -69,11 +66,11 @@ namespace ParticlesSandbox
 
         public override void _Ready()
         {
-            SimulationViewport.Size = new Vector2(Width, Height);
+            SimulationViewport.Size = new Vector2(TerrainTileData.Width, TerrainTileData.Height);
 
             if (DoubleBuffering)
             {
-                SimulationViewport2.Size = new Vector2(Width, Height);
+                SimulationViewport2.Size = new Vector2(TerrainTileData.Width, TerrainTileData.Height);
             }
         }
 

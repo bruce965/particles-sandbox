@@ -17,7 +17,7 @@ const ivec2 TILE_SIZE = ivec2(256, 256);
 
 void _getPixelData(sampler2D terrain, vec2 coordsUv, out int material, out ivec2 originalCoords) {
 	ivec4 data = ivec4(texture(terrain, coordsUv) * 255.);
-	material = data.x + ((data.y & 0xFF) << 8);
+	material = data.x + ((data.y & 0xFF) << 8);  // little endian
 	originalCoords = ivec2(data.z, data.a);
 }
 
